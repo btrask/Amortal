@@ -163,14 +163,14 @@ static NSString *const ETWindowRectKey = @"ETWindowRect";
 		return [expense date];
 	} else if(tableColumn == durationColumn) {
 		NSTimeInterval duration = 0;
-		if(![expense getDuration:&duration withNext:YES expenseInArray:_expenses]) return [[expense quantity] ET_isZero] ? NSLocalizedString(@"(stopped)", nil) : NSLocalizedString(@"(ongoing)", nil);
+		if(![expense getDuration:&duration withNext:YES expenseInArray:_expenses]) return [expense isStopped] ? NSLocalizedString(@"(stopped)", nil) : NSLocalizedString(@"(ongoing)", nil);
 		unsigned long const days = (unsigned long)round(duration / ETSecondsPerDay);
 		if(1 == days) return NSLocalizedString(@"1 day", nil);
 		return [NSString localizedStringWithFormat:NSLocalizedString(@"%lu days", nil), days];
 	} else if(tableColumn == quantityColumn) {
 		return [expense quantity];
 	} else if(tableColumn == amountColumn) {
-		if([[expense quantity] ET_isZero]) return [NSDecimalNumber notANumber];
+		if([expense isStopped]) return [NSDecimalNumber notANumber];
 		return [expense amount];
 	} else if(tableColumn == purposeColumn) {
 		return [expense purpose];
@@ -192,7 +192,7 @@ static NSString *const ETWindowRectKey = @"ETWindowRect";
 	} else if(tableColumn == quantityColumn) {
 		[expense setQuantity:object];
 	} else if(tableColumn == amountColumn) {
-		NSAssert(![[expense quantity] ET_isZero], @"Cannot set the amount when the quantity is zero.");
+		NSAssert(![expense isStopped], @"Cannot set the amount when the quantity is zero.");
 		[expense setAmount:object];
 	} else if(tableColumn == purposeColumn) {
 		[expense setPurpose:object];
@@ -209,7 +209,7 @@ static NSString *const ETWindowRectKey = @"ETWindowRect";
 	BOOL const editing = ([tableView editedRow] == row && [tableView editedColumn] == (NSInteger)[[tableView tableColumns] indexOfObjectIdenticalTo:tableColumn]);
 	if(editing) {
 		[cell setTextColor:[NSColor controlTextColor]];
-	} else if([[expense quantity] ET_isZero]) {
+	} else if([expense isStopped]) {
 		[cell setTextColor:[NSColor disabledControlTextColor]];
 	} else {
 		BOOL const negative = [[expense amount] ET_isNegative];
@@ -228,15 +228,16 @@ static NSString *const ETWindowRectKey = @"ETWindowRect";
 {
 	ETExpense *const expense = [_expenses objectAtIndex:row];
 	if(tableColumn == amountColumn) {
-		if([[expense quantity] ET_isZero]) return NO;
+		if([expense isStopped]) return NO;
 	}
 	return YES;
 }
 - (void)tableViewSelectionDidChange:(NSNotification *)aNotif
 {
 	NSMutableIndexSet *const remainingExpenses = [[[expenseTableView selectedRowIndexes] mutableCopy] autorelease];
-	if(![remainingExpenses count]) return [statusTextField setStringValue:@""];
+	if(!remainingExpenses) return;
 
+	NSUInteger count = 0;
 	NSDecimalNumber *total = [NSDecimalNumber zero];
 	NSMutableDictionary *dollarsPerKey = [NSMutableDictionary dictionary];
 	NSMutableDictionary *secondsPerKey = [NSMutableDictionary dictionary];
@@ -244,14 +245,15 @@ static NSString *const ETWindowRectKey = @"ETWindowRect";
 	NSUInteger i;
 	for(i = [remainingExpenses firstIndex]; NSNotFound != i; i = [remainingExpenses indexGreaterThanIndex:i]) {
 		ETExpense *const expense = [_expenses objectAtIndex:i];
+		if([expense isStopped]) continue;
+		count++;
 		id const key = [expense key];
 
-		BOOL const none = [[expense quantity] ET_isZero];
 		NSDecimalNumber *const amount = [expense amount];
 		total = [total decimalNumberByAdding:amount];
 
 		NSTimeInterval duration = 0.0;
-		if(![expense getDuration:&duration withNext:YES expenseInArray:_expenses] && !none) {
+		if(![expense getDuration:&duration withNext:YES expenseInArray:_expenses]) {
 			dollarsPerKey = nil;
 			secondsPerKey = nil;
 		}
@@ -262,6 +264,7 @@ static NSString *const ETWindowRectKey = @"ETWindowRect";
 			[secondsPerKey setObject:[NSNumber numberWithDouble:(seconds ? [seconds doubleValue] : 0.0) + duration] forKey:key];
 		}
 	}
+	if(!count) return [statusTextField setStringValue:@""];
 
 	double daily = 0.0;
 	for(id const key in dollarsPerKey) {

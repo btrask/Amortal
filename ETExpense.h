@@ -44,6 +44,8 @@ extern NSString *const ETExpenseDidChangeNotification;
 @property(copy) NSString *purpose;
 @property(copy) NSString *notes;
 
+@property(readonly) BOOL isStopped;
+
 - (ETExpense *)next:(BOOL)flag expenseInArray:(NSArray *)expenses;
 
 - (BOOL)getDuration:(out NSTimeInterval *)outDuration withNext:(BOOL)flag expense:(ETExpense *)expense;

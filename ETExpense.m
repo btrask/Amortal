@@ -82,7 +82,7 @@ static NSString *const ETNotesKey = @"ETNotes";
 }
 - (void)setAmount:(NSDecimalNumber *)val
 {
-	if([[self quantity] ET_isZero]) return;
+	if([self isStopped]) return;
 	if(ETEqualObjects(_amount, val)) return;
 	[[self ET_undo] setAmount:_amount];
 	[_amount release];
@@ -112,6 +112,13 @@ static NSString *const ETNotesKey = @"ETNotes";
 	[_notes release];
 	_notes = [str copy];
 	[[NSNotificationCenter defaultCenter] postNotificationName:ETExpenseDidChangeNotification object:self];
+}
+
+#pragma mark -
+
+- (BOOL)isStopped
+{
+	return [[self quantity] ET_isZero];
 }
 
 #pragma mark -
