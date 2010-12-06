@@ -116,23 +116,35 @@ static NSString *const ETNotesKey = @"ETNotes";
 
 #pragma mark -
 
-- (BOOL)getDuration:(out NSTimeInterval *)outDuration withNextExpense:(ETExpense *)expense
+- (ETExpense *)next:(BOOL)flag expenseInArray:(NSArray *)expenses
+{
+	NSUInteger i = [expenses indexOfObjectIdenticalTo:self];
+	NSAssert(NSNotFound != i, @"Expense must be in expense array");
+	NSInteger const increment = flag ? 1 : -1;
+	NSRange const range = flag ? NSMakeRange(i + 1, [expenses count] - (i + 1)) : NSMakeRange(0, i);
+	for(i += increment; NSLocationInRange(i, range); i += increment) {
+		ETExpense *const e = [expenses objectAtIndex:i];
+		if([self isEqual:e]) return e;
+	}
+	return nil;
+}
+
+#pragma mark -
+
+- (BOOL)getDuration:(out NSTimeInterval *)outDuration withNext:(BOOL)flag expense:(ETExpense *)expense
 {
 	NSDate *const d = [expense date];
-	if(d) {
-		if(outDuration) *outDuration = [d timeIntervalSinceDate:[self date]];
+	if(d && self != expense) {
+		if(outDuration) *outDuration = flag ? [d timeIntervalSinceDate:[self date]] : [[self date] timeIntervalSinceDate:d];
 		return YES;
 	} else {
-		if(outDuration) *outDuration = [[NSDate date] timeIntervalSinceDate:[self date]];
+		if(outDuration) *outDuration = 0.0;
 		return NO;
 	}
 }
-- (BOOL)getDuration:(out NSTimeInterval *)outDuration withExpenseArray:(NSArray *)expenses
+- (BOOL)getDuration:(out NSTimeInterval *)outDuration withNext:(BOOL)flag expenseInArray:(NSArray *)expenses
 {
-	NSUInteger const i = [expenses indexOfObjectIdenticalTo:self];
-	NSAssert(NSNotFound != i, @"Expense must be in expense array");
-	NSUInteger const j = [expenses indexOfObject:self inRange:NSMakeRange(i + 1, [expenses count] - (i + 1))];
-	return [self getDuration:outDuration withNextExpense:NSNotFound == j ? nil : [expenses objectAtIndex:j]];
+	return [self getDuration:outDuration withNext:flag expense:[self next:flag expenseInArray:expenses]];
 }
 
 #pragma mark -

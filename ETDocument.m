@@ -48,14 +48,22 @@ static NSString *const ETWindowRectKey = @"ETWindowRect";
 
 - (IBAction)selectRelated:(id)sender
 {
-	NSArray *const selectedExpenses = [_expenses objectsAtIndexes:[expenseTableView selectedRowIndexes]];
+	NSArray *const selectedExpenses = [self selectedExpenses];
 	NSMutableIndexSet *const selection = [NSMutableIndexSet indexSet];
 	NSUInteger i;
 	for(i = 0; i < [_expenses count]; ++i) {
 		ETExpense *const expense = [_expenses objectAtIndex:i];
-		if([selectedExpenses containsObject:expense] && [expense getDuration:NULL withExpenseArray:_expenses]) [selection addIndex:i];
+		if([selectedExpenses containsObject:expense] && [expense getDuration:NULL withNext:YES expenseInArray:_expenses]) [selection addIndex:i];
 	}
 	[expenseTableView selectRowIndexes:selection byExtendingSelection:NO];
+}
+- (IBAction)selectPrevious:(id)sender
+{
+	[self selectExpense:[[self selectedExpense] next:NO expenseInArray:_expenses]];
+}
+- (IBAction)selectNext:(id)sender
+{
+	[self selectExpense:[[self selectedExpense] next:YES expenseInArray:_expenses]];
 }
 
 #pragma mark -
@@ -72,6 +80,7 @@ static NSString *const ETWindowRectKey = @"ETWindowRect";
 	NSUInteger const i = [_expenses indexOfObjectIdenticalTo:expense];
 	[expenseTableView reloadData];
 	[expenseTableView selectRowIndexes:[NSIndexSet indexSetWithIndex:i] byExtendingSelection:NO];
+	[expenseTableView scrollRowToVisible:i];
 	[expense ET_addObserver:self selector:@selector(expenseDidChange:) name:ETExpenseDidChangeNotification];
 }
 - (void)removeExpense:(ETExpense *)expense
@@ -80,6 +89,26 @@ static NSString *const ETWindowRectKey = @"ETWindowRect";
 	[_expenses removeObjectIdenticalTo:expense];
 	[self expenseDidChange:nil];
 	[expense ET_removeObserver:self name:ETExpenseDidChangeNotification];
+}
+
+#pragma mark -
+
+- (NSArray *)selectedExpenses
+{
+	return [_expenses objectsAtIndexes:[expenseTableView selectedRowIndexes]];
+}
+- (ETExpense *)selectedExpense
+{
+	NSArray *const e = [self selectedExpenses];
+	return [e count] == 1 ? [e objectAtIndex:0] : nil;
+}
+- (BOOL)selectExpense:(ETExpense *)expense
+{
+	NSUInteger const i = [_expenses indexOfObjectIdenticalTo:expense];
+	if(NSNotFound == i) return NO;
+	[expenseTableView selectRowIndexes:[NSIndexSet indexSetWithIndex:i] byExtendingSelection:NO];
+	[expenseTableView scrollRowToVisible:i];
+	return YES;
 }
 
 #pragma mark -
@@ -134,7 +163,7 @@ static NSString *const ETWindowRectKey = @"ETWindowRect";
 		return [expense date];
 	} else if(tableColumn == durationColumn) {
 		NSTimeInterval duration = 0;
-		if(![expense getDuration:&duration withExpenseArray:_expenses]) return [[expense quantity] ET_isZero] ? NSLocalizedString(@"(stopped)", nil) : NSLocalizedString(@"(ongoing)", nil);
+		if(![expense getDuration:&duration withNext:YES expenseInArray:_expenses]) return [[expense quantity] ET_isZero] ? NSLocalizedString(@"(stopped)", nil) : NSLocalizedString(@"(ongoing)", nil);
 		unsigned long const days = (unsigned long)round(duration / ETSecondsPerDay);
 		if(1 == days) return NSLocalizedString(@"1 day", nil);
 		return [NSString localizedStringWithFormat:NSLocalizedString(@"%lu days", nil), days];
@@ -157,7 +186,7 @@ static NSString *const ETWindowRectKey = @"ETWindowRect";
 		[expense setDate:object];
 		[_expenses sortUsingSelector:@selector(compare:)];
 		[expenseTableView reloadData];
-		[expenseTableView selectRowIndexes:[NSIndexSet indexSetWithIndex:[_expenses indexOfObjectIdenticalTo:expense]] byExtendingSelection:NO];
+		[self selectExpense:expense];
 	} else if(tableColumn == durationColumn) {
 		ETAssertNotReached(@"Duration column is not editable.");
 	} else if(tableColumn == quantityColumn) {
@@ -184,7 +213,7 @@ static NSString *const ETWindowRectKey = @"ETWindowRect";
 		[cell setTextColor:[NSColor disabledControlTextColor]];
 	} else {
 		BOOL const negative = [[expense amount] ET_isNegative];
-		BOOL const ongoing = ![expense getDuration:NULL withExpenseArray:_expenses];
+		BOOL const ongoing = ![expense getDuration:NULL withNext:(YES) expenseInArray:_expenses];
 		if(tableColumn == amountColumn && negative) {
 			BOOL const selected = [[tableView selectedRowIndexes] containsIndex:row] && [[tableView window] isKeyWindow];
 			[cell setTextColor:selected ? [NSColor colorWithDeviceRed:1.0 green:0.75 blue:0.75 alpha:1.0] : [NSColor redColor]];
@@ -222,7 +251,7 @@ static NSString *const ETWindowRectKey = @"ETWindowRect";
 		total = [total decimalNumberByAdding:amount];
 
 		NSTimeInterval duration = 0.0;
-		if(![expense getDuration:&duration withExpenseArray:_expenses] && !none) {
+		if(![expense getDuration:&duration withNext:YES expenseInArray:_expenses] && !none) {
 			dollarsPerKey = nil;
 			secondsPerKey = nil;
 		}
@@ -337,6 +366,10 @@ static NSString *const ETWindowRectKey = @"ETWindowRect";
 	SEL const action = [anItem action];
 	if(@selector(selectRelated:) == action) {
 		if(![[expenseTableView selectedRowIndexes] count]) return NO;
+	}
+	if(![self selectedExpense]) {
+		if(@selector(selectPrevious:) == action) return NO;
+		if(@selector(selectNext:) == action) return NO;
 	}
 	return [super validateMenuItem:anItem];
 }

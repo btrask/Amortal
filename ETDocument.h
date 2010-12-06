@@ -44,10 +44,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 }
 
 - (IBAction)selectRelated:(id)sender;
+- (IBAction)selectPrevious:(id)sender;
+- (IBAction)selectNext:(id)sender;
 
 @property(readonly) NSArray *expenses;
 - (void)addExpense:(ETExpense *)expense;
 - (void)removeExpense:(ETExpense *)expense;
+
+- (NSArray *)selectedExpenses;
+- (ETExpense *)selectedExpense;
+- (BOOL)selectExpense:(ETExpense *)expense;
 
 - (void)expenseDidChange:(NSNotification *)aNotif;
 

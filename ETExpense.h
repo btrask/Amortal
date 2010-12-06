@@ -44,8 +44,10 @@ extern NSString *const ETExpenseDidChangeNotification;
 @property(copy) NSString *purpose;
 @property(copy) NSString *notes;
 
-- (BOOL)getDuration:(out NSTimeInterval *)outDuration withNextExpense:(ETExpense *)expense;
-- (BOOL)getDuration:(out NSTimeInterval *)outDuration withExpenseArray:(NSArray *)expenses;
+- (ETExpense *)next:(BOOL)flag expenseInArray:(NSArray *)expenses;
+
+- (BOOL)getDuration:(out NSTimeInterval *)outDuration withNext:(BOOL)flag expense:(ETExpense *)expense;
+- (BOOL)getDuration:(out NSTimeInterval *)outDuration withNext:(BOOL)flag expenseInArray:(NSArray *)expenses;
 
 - (NSComparisonResult)compare:(ETExpense *)obj;
 
