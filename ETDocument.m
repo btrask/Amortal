@@ -66,6 +66,27 @@ static NSString *const ETWindowRectKey = @"ETWindowRect";
 	[self selectExpense:[[self selectedExpense] next:YES expenseInArray:_expenses]];
 }
 
+- (IBAction)copy:(id)sender
+{
+	NSPasteboard *const p = [NSPasteboard generalPasteboard];
+	[p clearContents];
+	[p writeObjects:[self selectedExpenses]];
+}
+- (IBAction)cut:(id)sender
+{
+	[self copy:sender];
+	[self delete:sender];
+}
+- (IBAction)paste:(id)sender
+{
+	NSPasteboard *const p = [NSPasteboard generalPasteboard];
+	[self addExpenses:[p readObjectsForClasses:[NSArray arrayWithObject:[ETExpense class]] options:nil]];
+}
+- (IBAction)delete:(id)sender
+{
+	[self removeExpensesAtIndexes:[expenseTableView selectedRowIndexes]];
+}
+
 #pragma mark -
 
 - (NSArray *)expenses
@@ -89,6 +110,30 @@ static NSString *const ETWindowRectKey = @"ETWindowRect";
 	[_expenses removeObjectIdenticalTo:expense];
 	[self expenseDidChange:nil];
 	[expense ET_removeObserver:self name:ETExpenseDidChangeNotification];
+}
+
+#pragma mark -
+
+- (void)addExpenses:(NSArray *const)expenses
+{
+	if(![expenses count]) return;
+	[[self ET_undo] _setExpenses:[[_expenses mutableCopy] autorelease]];
+	[_expenses addObjectsFromArray:expenses];
+	[_expenses sortUsingSelector:@selector(compare:)];
+	NSMutableIndexSet *const indexes = [NSMutableIndexSet indexSet];
+	for(ETExpense *const expense in expenses) [indexes addIndex:[_expenses indexOfObjectIdenticalTo:expense]];
+	[expenseTableView reloadData];
+	[expenseTableView selectRowIndexes:indexes byExtendingSelection:NO];
+	[expenseTableView scrollRowToVisible:[indexes lastIndex]];
+	[expenseTableView scrollRowToVisible:[indexes firstIndex]];
+	[self expenseDidChange:nil];
+}
+- (void)removeExpensesAtIndexes:(NSIndexSet *const)indexes
+{
+	[[self ET_undo] _setExpenses:[[_expenses mutableCopy] autorelease]];
+	[_expenses removeObjectsAtIndexes:indexes];
+	[expenseTableView selectRowIndexes:[NSIndexSet indexSet] byExtendingSelection:NO];
+	[self expenseDidChange:nil];
 }
 
 #pragma mark -
@@ -144,10 +189,7 @@ static NSString *const ETWindowRectKey = @"ETWindowRect";
 }
 - (void)tableViewShouldDeleteSelection:(ETTableView *)sender
 {
-	[[self ET_undo] _setExpenses:[[_expenses mutableCopy] autorelease]];
-	[_expenses removeObjectsAtIndexes:[expenseTableView selectedRowIndexes]];
-	[expenseTableView selectRowIndexes:[NSIndexSet indexSet] byExtendingSelection:NO];
-	[self expenseDidChange:nil];
+	[self delete:sender];
 }
 
 #pragma mark -<NSTableViewDataSource>

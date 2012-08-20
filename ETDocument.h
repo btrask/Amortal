@@ -30,7 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 @interface ETDocument : NSDocument <ETTableViewDataSource, NSTableViewDataSource, NSTableViewDelegate>
 {
 	@private
-	IBOutlet NSTableView *expenseTableView;
+	IBOutlet ETTableView *expenseTableView;
 	IBOutlet NSTableColumn *dateColumn;
 	IBOutlet NSTableColumn *durationColumn;
 	IBOutlet NSTableColumn *quantityColumn;
@@ -47,9 +47,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 - (IBAction)selectPrevious:(id)sender;
 - (IBAction)selectNext:(id)sender;
 
+- (IBAction)copy:(id)sender;
+- (IBAction)cut:(id)sender;
+- (IBAction)paste:(id)sender;
+- (IBAction)delete:(id)sender;
+
 @property(readonly) NSArray *expenses;
 - (void)addExpense:(ETExpense *)expense;
 - (void)removeExpense:(ETExpense *)expense;
+
+- (void)addExpenses:(NSArray *const)expenses;
+- (void)removeExpensesAtIndexes:(NSIndexSet *const)indexes;
 
 - (NSArray *)selectedExpenses;
 - (ETExpense *)selectedExpense;

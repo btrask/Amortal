@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 extern NSString *const ETExpenseDidChangeNotification;
 
-@interface ETExpense : NSObject <ETPropertyListSerializing>
+@interface ETExpense : NSObject <ETPropertyListSerializing, NSPasteboardReading, NSPasteboardWriting>
 {
 	@private
 	NSDate *_date;
@@ -37,6 +37,9 @@ extern NSString *const ETExpenseDidChangeNotification;
 
 	NSUndoManager *_undoManager;
 }
+
+- (id)init;
+- (id)initWithPropertyList:(id const)plist;
 
 @property(copy) NSDate *date;
 @property(copy) NSDecimalNumber *quantity;

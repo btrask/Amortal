@@ -34,22 +34,43 @@ static NSString *const ETAmountKey = @"ETAmount";
 static NSString *const ETPurposeKey = @"ETPurpose";
 static NSString *const ETNotesKey = @"ETNotes";
 
+static NSString *const ETExpensePasteboardType = @"com.BenTrask.Amortal.expense"; // TODO: Check UTI guidelines to make sure this is okay.
+
 @implementation ETExpense
 
-#pragma mark +<ETPropertyListSerializing>
+#pragma mark +ETExpense<ETPropertyListSerializing>
 
 + (id)ET_objectWithPropertyList:(id)plist
 {
-	ETExpense *const expense = [[[self alloc] init] autorelease];
-	[expense setDate:[NSDate ET_objectWithPropertyList:[plist objectForKey:ETDateKey]]];
-	[expense setQuantity:[NSDecimalNumber ET_objectWithPropertyList:[plist objectForKey:ETQuantityKey]]];
-	[expense setAmount:[NSDecimalNumber ET_objectWithPropertyList:[plist objectForKey:ETAmountKey]]];
-	[expense setPurpose:[NSString ET_objectWithPropertyList:[plist objectForKey:ETPurposeKey]]];
-	[expense setNotes:[NSString ET_objectWithPropertyList:[plist objectForKey:ETNotesKey]]];
-	return expense;
+	return [[[self alloc] initWithPropertyList:plist] autorelease];
+}
+
+#pragma mark +ETExpense<NSPasteboardReading>
+
++ (NSArray *)readableTypesForPasteboard:(NSPasteboard *const)pasteboard
+{
+	return [NSArray arrayWithObject:ETExpensePasteboardType];
+}
++ (NSPasteboardReadingOptions)readingOptionsForType:(NSString *const)type pasteboard:(NSPasteboard *const)pasteboard
+{
+	return NSPasteboardReadingAsPropertyList;
 }
 
 #pragma mark -ETExpense
+
+- (id)initWithPropertyList:(id const)plist
+{
+	if((self = [super init])) {
+		[self setDate:[NSDate ET_objectWithPropertyList:[plist objectForKey:ETDateKey]]];
+		[self setQuantity:[NSDecimalNumber ET_objectWithPropertyList:[plist objectForKey:ETQuantityKey]]];
+		[self setAmount:[NSDecimalNumber ET_objectWithPropertyList:[plist objectForKey:ETAmountKey]]];
+		[self setPurpose:[NSString ET_objectWithPropertyList:[plist objectForKey:ETPurposeKey]]];
+		[self setNotes:[NSString ET_objectWithPropertyList:[plist objectForKey:ETNotesKey]]];
+	}
+	return self;
+}
+
+#pragma mark -
 
 - (NSDate *)date
 {
@@ -169,7 +190,7 @@ static NSString *const ETNotesKey = @"ETNotes";
 
 @synthesize undoManager = _undoManager;
 
-#pragma mark -<ETPropertyListSerializing>
+#pragma mark -ETExpense<ETPropertyListSerializing>
 
 - (id)ET_propertyList
 {
@@ -203,6 +224,29 @@ static NSString *const ETNotesKey = @"ETNotes";
 	[_purpose release];
 	[_notes release];
 	[super dealloc];
+}
+
+#pragma mark -ETExpense<NSPasteboardReading>
+
+- (id)initWithPasteboardPropertyList:(id const)propertyList ofType:(NSString *const)type
+{
+	if(![ETExpensePasteboardType isEqualToString:type]) {
+		[self release];
+		return nil;
+	}
+	return [self initWithPropertyList:propertyList];
+}
+
+#pragma mark -ETExpense<NSPasteboardWriting>
+
+- (NSArray *)writableTypesForPasteboard:(NSPasteboard *const)pasteboard
+{
+	return [NSArray arrayWithObject:ETExpensePasteboardType];
+}
+- (id)pasteboardPropertyListForType:(NSString *const)type
+{
+	if(![ETExpensePasteboardType isEqualToString:type]) return nil;
+	return [self ET_propertyList];
 }
 
 #pragma mark -<NSObject>
